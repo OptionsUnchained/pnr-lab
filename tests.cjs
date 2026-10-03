@@ -6,6 +6,7 @@ const positions=[r('put',-10,'2026-11-20',75,.8),r('call',-10,'2026-11-20',125,.
 const near=(a,b,t=.02)=>assert.ok(Math.abs(a-b)<t,`${a} vs ${b}`);
 const legs=P.compile(positions,cfg),base=P.evaluate(legs,cfg);
 near(base.equity,100000,.001);assert.ok(base.up&&base.down);near(base.equityAt(base.up.price),0,.01);near(base.equityAt(base.down.price),0,.01);
+const boundaryPrice=base.up.price/(1+cfg.epr/100),boundaryMove=(boundaryPrice/cfg.evaluateSpot-1)*100;near(boundaryMove,((1+base.up.move/100)/(1+cfg.epr/100)-1)*100,.000001);assert.ok(boundaryPrice>cfg.evaluateSpot);
 for(const leg of legs)near(leg.base,leg.mark,.00001);
 near(base.legResults.reduce((a,l)=>a+l.upLoss,0),base.upLoss,.01);
 const reduced=positions.map((x,i)=>({...x,qty:i<2?-5:x.qty}));

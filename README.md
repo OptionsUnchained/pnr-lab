@@ -22,9 +22,9 @@ GitHub Pages sites are ordinarily public even when the source repository is priv
 ## Screenshot import
 
 1. Set the snapshot date to the date of your screenshot. This is used to infer missing expiration years.
-2. In **Screenshot import**, choose a photo, take one with your phone, paste an image, or drag and drop it. The browser accepts any image format it can decode; if a HEIC image cannot be decoded, export it as JPEG or PNG. Supported layout is a tastytrade positions list like the mobile view, showing a left quantity, month/day date, strike/P or C below it, and price columns on the right. Auto detection distinguishes bid/ask from P/L / Last / Trade Price views. In P/L views, it extracts Last and entry prices for reference and leaves current marks blank. To deliberately use Last as a current-price proxy, select **Use Last as proxy (may be stale)** before reading the image. This is not a bid/ask midpoint. Capital Requirements screens and order tickets are excluded from holdings extraction. Crop to that list for better results. Option-chain screenshots and multi-leg order/roll tickets do not establish holdings and are not automatically supported.
+2. In **Screenshot import**, select **Upload photos** and choose one or two images. One photo may show quantities/positions while the other shows bid and ask. The app matches rows by expiration, strike and call/put, preferring a recognized bid/ask midpoint over a Last-price proxy. Conflicting quantities or quotes are flagged for review. The browser accepts any image format it can decode; if a HEIC image cannot be decoded, export it as JPEG or PNG. Capital Requirements screens and order tickets are excluded from holdings extraction. Crop to the positions list for better results.
 3. Choose **Original positions** or **Proposed positions**, and replace or append.
-4. Select **Read selected image**. Grayscale, dark-background inversion and contrast preprocessing are applied before browser-local OCR.
+4. Select **Read selected photos**. Each photo is processed separately, then matching rows are merged. Grayscale, dark-background inversion and contrast preprocessing are applied before browser-local OCR.
 5. Compare the review table against the image. Correct dates, quantities and minus signs, strikes, bid/ask, and midpoint. The midpoint updates when bid or ask is edited. Quantity signs that are not clearly detected are left blank. Long quantities may need manual entry because OCR cannot establish their sign reliably.
 6. Confirm each row. Missing/invalid fields prevent import. You may remove a spurious row or add a missed one manually. Detected symbol, spot and NLV are optional and are applied only if you check the account-field checkbox; a missing NLV is never invented.
 7. Import reviewed rows, check the account values, then calculate.
@@ -37,7 +37,7 @@ GitHub documentation: https://docs.github.com/en/pages/getting-started-with-gith
 
 ## Use the calculator
 
-- Select one underlying. Enter its current spot, the account's **current total NLV**, snapshot date, EPR and assumed rate/dividend yield.
+- Select one underlying. Enter its current spot, the account's **current total NLV**, snapshot date and EPR. Interest rate and dividend yield default to 0% and remain editable.
 - Add one row per option leg. Standard equity options use a multiplier of 100. Negative quantity means short; positive means long. “Shares” uses quantity in shares.
 - Enter the **current midpoint per share**, not the entry credit. Optional entry premium is retained as a reference only and does not enter the PNR equation. The bid/ask helper computes a midpoint.
 - Leave IV blank to infer a separate IV from each option midpoint. Optionally enter IV in percent to override it. With an override, equity changes are anchored to the modeled snapshot; quote/model discrepancies are flagged.
@@ -45,7 +45,7 @@ GitHub documentation: https://docs.github.com/en/pages/getting-started-with-gith
 - Enter only **external cash** in cash added/withdrawn. Do not add option sale credits again. At fair value, trade cash flows are offset by the change in option assets/liabilities, leaving NLV unchanged. Fees and adverse slippage reduce proposed NLV.
 - Choose the evaluation date and assumed spot on that date. The **+7 days** shortcut keeps spot unchanged. Both original and proposed use the same evaluation conditions.
 - IV multiplier 1 keeps the fitted per-leg IVs fixed. 1.25 means an increase from 40% to 50% IV. This shock applies at the evaluation point and all subsequent stress prices; it is illustrative and not a reconstruction of tastytrade's house shocks.
-- Calculate. Positive EPR losses consume equity; negative values represent gains. Per-contract loss uses the absolute contract count. PNR changes are shown in percentage points.
+- Calculate. Each result shows the estimated stock price where upside PNR would equal EPR and the percentage rally remaining to that boundary. Positive EPR losses consume equity; negative values represent gains. Per-contract loss uses the absolute contract count. PNR changes are shown in percentage points.
 - Export JSON for a full backup and CSV for the per-leg breakdown. Clearing the browser's storage removes the local saved project.
 
 ## Model and accounting

@@ -43,5 +43,24 @@ function parseText(text,asOf){
  function finish(){if(!chunk.length)return;const line=chunk.join(' '),m=line.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(\d{1,2})(?:[,\s]+(20\d{2}))?/i),iso=line.match(/\b(20\d{2}-\d{2}-\d{2})\b/);const type=line.match(/\b(\d+(?:\.\d+)?)\s*(P|C|Put|Call)\b/i);if((m||iso)&&type){const prefix=line.slice(0,m?m.index:iso.index),qty=prefix.match(/([-+]\d+|\b\d+)\s*$/),tail=line.slice(type.index+type[0].length),quotes=(tail.match(/\d+\.\d+/g)||[]).map(Number);const bid=quotes[0]??'',ask=quotes[1]??'';rows.push({kind:/^p/i.test(type[2])?'put':'call',qty:qty&&/^[-+]/.test(qty[1])?+qty[1]:'',expiry:iso?iso[1]:expiry(months[m[1].toLowerCase()],+m[2],m[3]?+m[3]:null,asOf,NaN),strike:+type[1],bid,ask,mark:bid!==''&&ask!==''&&ask>=bid?(bid+ask)/2:'',iv:'',entry:'',priceSource:'Bid/ask midpoint (text)',warnings:['review text extraction',...(!qty?['quantity missing']:[]),...(quotes.length<2?['quote missing']:[])],confirmed:false});}chunk=[];}
  for(const line of lines){if(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d|\b20\d{2}-\d{2}-\d{2}/i.test(line)){finish();chunk=[line];}else if(chunk.length)chunk.push(line);}finish();return{rows,symbol:'',spot:'',nlv:'',text};
 }
-const api={parseWords,parseText,groupLines,expiry};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.PNROCR=api;
+function mergeParsed(items){
+ const sources=(items||[]).filter(Boolean),rows=[],byKey=new Map(),present=v=>v!==''&&v!=null;
+ for(const source of sources)for(const incoming of source.rows||[]){
+  const key=incoming.expiry&&present(incoming.strike)&&incoming.kind?[incoming.expiry,incoming.strike,incoming.kind].join('|'):'unmatched-'+rows.length;
+  if(!byKey.has(key)){const copy={...incoming,warnings:[...(incoming.warnings||[])],confirmed:false};byKey.set(key,copy);rows.push(copy);continue;}
+  const row=byKey.get(key),warnings=new Set([...(row.warnings||[]),...(incoming.warnings||[]),'combined from multiple photos']);
+  if(present(row.qty)&&present(incoming.qty)&&+row.qty!==+incoming.qty)warnings.add('conflicting quantities — review');else if(!present(row.qty)&&present(incoming.qty))row.qty=incoming.qty;
+  for(const field of ['last','entry','iv'])if(!present(row[field])&&present(incoming[field]))row[field]=incoming[field];
+  const hasIncomingQuotes=present(incoming.bid)&&present(incoming.ask)&&+incoming.ask>=+incoming.bid;
+  const hasRowQuotes=present(row.bid)&&present(row.ask)&&+row.ask>=+row.bid;
+  if(hasIncomingQuotes){if(hasRowQuotes&&(+row.bid!==+incoming.bid||+row.ask!==+incoming.ask))warnings.add('conflicting bid/ask values — latest photo used');row.bid=incoming.bid;row.ask=incoming.ask;row.mark=incoming.mark;row.priceSource=incoming.priceSource||'Bid/ask midpoint';}
+  else if(!present(row.mark)&&present(incoming.mark)){row.mark=incoming.mark;row.priceSource=incoming.priceSource;}
+  row.warnings=[...warnings].filter(w=>!(present(row.qty)&&/quantity (?:missing|sign uncertain)/i.test(w))&&!(present(row.mark)&&/current mark missing|quote missing/i.test(w)));
+  row.confirmed=false;
+ }
+ const ranked=[...sources].sort((a,b)=>(b.rows||[]).filter(r=>present(r.mark)).length-(a.rows||[]).filter(r=>present(r.mark)).length);
+ const field=name=>{const source=ranked.find(x=>present(x[name]));return source?source[name]:'';};
+ return{rows,symbol:field('symbol'),spot:field('spot'),nlv:field('nlv'),text:sources.map((x,i)=>'PHOTO '+(i+1)+'\n'+(x.text||'')).join('\n\n'),message:sources.length>1?'Merged '+rows.length+' candidate legs from '+sources.length+' photos. Matching expiration, strike and type were combined; review conflicts and confirm every row.':sources[0]?.message};
+}
+const api={parseWords,parseText,mergeParsed,groupLines,expiry};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.PNROCR=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
