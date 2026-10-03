@@ -1,0 +1,29 @@
+[project]
+name = "expected-move-discord-bot"
+version = "2.18.1"
+description = "A Discord bot for Tastytrade expected moves, EPR, earnings, GEX, flow, and movers."
+requires-python = ">=3.12"
+dependencies = [
+  "asyncpg==0.30.0",
+  "discord.py==2.6.4",
+  "Pillow==12.3.0",
+  "tastytrade==13.2.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.2",
+  "pytest-asyncio==1.2.0",
+  "ruff==0.13.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
