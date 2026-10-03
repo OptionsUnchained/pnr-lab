@@ -6,7 +6,7 @@ A portfolio scenario calculator for GitHub Pages. Enter an original portfolio an
 
 Open `index.html` in a browser. It includes the app's scripts and styles. No installation, API key, brokerage login, server, or build is required for the calculator. Screenshot OCR requires internet access and a browser supporting WebAssembly/web workers; use GitHub Pages over HTTPS for the best compatibility. Browser-local storage saves inputs when supported; JSON export/import transfers projects between devices.
 
-The application starts with blank position tables. “Load SMH example” loads an illustrative October 2, 2026 snapshot, using the supplied holdings, the later screenshot spot $630.75 and NLV $501,978.34, and the earlier bid/ask midpoints. It displays broker PNR 26%, SMH margin $203,026.77 and extrinsic $32,765.71 as comparison references. These observations do not calibrate the model. See SMH-AUDIT.md for the reconciliation and its limits. This example is bundled in the public app; your subsequently entered positions are stored only in your browser. Do not commit exported personal input JSON to a public repository.
+The application starts with blank position tables. “Load sample data” uses a synthetic `XYZ` portfolio with round-number assumptions. No user holdings, account values, screenshots or broker observations are bundled. Your entered positions are stored only in your browser. Do not commit exported personal input JSON to a public repository.
 
 ## Host on GitHub Pages
 
@@ -22,16 +22,16 @@ GitHub Pages sites are ordinarily public even when the source repository is priv
 ## Screenshot import
 
 1. Set the snapshot date to the date of your screenshot. This is used to infer missing expiration years.
-2. In **Screenshot import**, choose a PNG, JPEG or WebP image. Supported layout is a tastytrade positions list like the mobile view, showing a left quantity, month/day date, strike/P or C below it, and price columns on the right. Auto detection distinguishes bid/ask from P/L / Last / Trade Price views. In P/L views, it extracts Last and entry prices for reference and leaves current marks blank. To deliberately use Last as a current-price proxy, select **Use Last as proxy (may be stale)** before reading the image. This is not a bid/ask midpoint. Capital Requirements screens and order tickets are excluded from holdings extraction. Crop to that list for better results. Option-chain screenshots and multi-leg order/roll tickets do not establish holdings and are not automatically supported.
+2. In **Screenshot import**, choose a photo, take one with your phone, paste an image, or drag and drop it. The browser accepts any image format it can decode; if a HEIC image cannot be decoded, export it as JPEG or PNG. Supported layout is a tastytrade positions list like the mobile view, showing a left quantity, month/day date, strike/P or C below it, and price columns on the right. Auto detection distinguishes bid/ask from P/L / Last / Trade Price views. In P/L views, it extracts Last and entry prices for reference and leaves current marks blank. To deliberately use Last as a current-price proxy, select **Use Last as proxy (may be stale)** before reading the image. This is not a bid/ask midpoint. Capital Requirements screens and order tickets are excluded from holdings extraction. Crop to that list for better results. Option-chain screenshots and multi-leg order/roll tickets do not establish holdings and are not automatically supported.
 3. Choose **Original positions** or **Proposed positions**, and replace or append.
-4. Select **Read screenshot**. Grayscale, dark-background inversion and contrast preprocessing are applied before browser-local OCR.
+4. Select **Read selected image**. Grayscale, dark-background inversion and contrast preprocessing are applied before browser-local OCR.
 5. Compare the review table against the image. Correct dates, quantities and minus signs, strikes, bid/ask, and midpoint. The midpoint updates when bid or ask is edited. Quantity signs that are not clearly detected are left blank. Long quantities may need manual entry because OCR cannot establish their sign reliably.
 6. Confirm each row. Missing/invalid fields prevent import. You may remove a spurious row or add a missed one manually. Detected symbol, spot and NLV are optional and are applied only if you check the account-field checkbox; a missing NLV is never invented.
 7. Import reviewed rows, check the account values, then calculate.
 
 OCR is assistive extraction, not guaranteed accurate recognition. Images are kept only in memory, not included in JSON backups or browser-local portfolio storage. An image missing a field cannot supply it; IV is inferred from the imported midpoint. Entry premiums can be extracted from recognized Trade Price columns and remain reference-only. Cropped or unfamiliar columns may be left blank. First use may be slow on a phone while the model downloads.
 
-Text fallback example (one leg per line): `-15 Oct 16 2026 715 C 0.33 0.45`. Use **Parse text into review table**, correct and confirm, then import.
+Text fallback example (one leg per line): `-2 Jun 19 2027 125 C 0.85 0.95`. Use **Parse text into review table**, correct and confirm, then import.
 
 GitHub documentation: https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site
 
@@ -85,12 +85,10 @@ Tests cover fitting quote IVs, known PNR examples, close/roll/cash accounting, f
 
 MIT. This is an independent theoretical calculator, not affiliated with tastytrade.
 
-## Screenshot audit (October 2, 2026)
+## Validation and privacy
 
-The SMH example yields modeled upside PNR 26.8817%, versus the broker’s displayed integer 26%. Do not infer a confirmed rounding/truncation rule from this single observation. Midpoints and account data come from separate screenshots. Exact replication requires synchronized quotes and the broker’s volatility/price risk arrays. The modeled +25% loss ($438,654.48) is not the observed $203,026.77 margin requirement. Reference inputs are saved/exported with the project and are never used to tune pricing. The reference panel always evaluates Original at the snapshot, even when the scenario is moved forward.
+The EPR status badge checks both modeled directions. Signed downside PNR is negative; broker 101% readings are not assumed to be exact zero-equity thresholds. Broker reference inputs are saved/exported with the project but are never used to tune pricing.
 
-The EPR status badge checks both modeled directions. Signed downside PNR is negative; repeated broker 101% readings are not assumed to be exact zero-equity thresholds.
-
-Validation: pricing/accounting tests, parser regressions, actual SMH image via local Tesseract, and mocked UI flow passed. The complete browser WebAssembly OCR/download flow and visual layout have not been browser-tested. OCR on the provided images can miss quantity signs and occasional type/entry fields; review is mandatory.
+Pricing/accounting tests, parser regressions and mocked UI flows cover the model and import safeguards using synthetic data. The complete browser WebAssembly OCR/download flow and visual layout have not been browser-tested. OCR can miss quantity signs and fields; review is mandatory. Images are processed in browser memory and are not persisted in project JSON or local position storage.
 
 Imported price-source labels persist in table rows, saved inputs and JSON exports. Last-price proxies remain visibly marked. Editing a current mark changes its label to Manual mark.

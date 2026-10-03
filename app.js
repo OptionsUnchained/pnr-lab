@@ -1,12 +1,12 @@
 (function(){'use strict';
-const $=id=>document.getElementById(id),KEY='pnr-lab-v1',ids=['symbol','spot','nlv','asOf','epr','rate','yield','evaluateOn','evaluateSpot','ivScale','deposit','cost','brokerPNR','brokerMargin','brokerExtrinsic'];
+const $=id=>document.getElementById(id),KEY='pnr-lab-v2',ids=['symbol','spot','nlv','asOf','epr','rate','yield','evaluateOn','evaluateSpot','ivScale','deposit','cost','brokerPNR','brokerMargin','brokerExtrinsic'];
 let state={original:[],proposed:[]},last=null,chartData=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=x=>Number.isFinite(x)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(x):'—';
 const pct=x=>Number.isFinite(x)?x.toFixed(2)+'%':'—';
 const sign=x=>x>0?'+':'';
 function defaults(){const today=new Date().toLocaleDateString('en-CA');const date=/^\d{4}-\d{2}-\d{2}$/.test(today)?today:new Date().toISOString().slice(0,10);return{symbol:'',spot:100,nlv:100000,asOf:date,epr:25,rate:4,yield:.5,evaluateOn:date,evaluateSpot:100,ivScale:1,deposit:0,cost:0,brokerPNR:'',brokerMargin:'',brokerExtrinsic:'',original:[],proposed:[]};}
-function example(){const r=(kind,qty,expiry,strike,mark)=>({kind,qty,expiry,strike,mark,iv:'',entry:'',priceSource:'Earlier bid/ask midpoint'});const original=[r('put',-15,'2026-10-16',430,.085),r('call',-15,'2026-10-16',715,.39),r('put',-30,'2026-11-20',390,.525),r('call',-30,'2026-11-20',740,4.625),r('put',-20,'2026-12-18',355,.89),r('call',-20,'2026-12-18',795,4.3),r('put',-20,'2027-01-15',350,1.255),r('call',-20,'2027-01-15',910,1.835)];return{...defaults(),symbol:'SMH',spot:630.75,nlv:501978.34,brokerPNR:26,brokerMargin:203026.77,brokerExtrinsic:32765.71,asOf:'2026-10-02',evaluateOn:'2026-10-02',evaluateSpot:630.75,original,proposed:JSON.parse(JSON.stringify(original))};}
+function example(){const data=defaults(),base=Date.parse(data.asOf+'T00:00:00Z'),date=n=>new Date(base+n*86400000).toISOString().slice(0,10),r=(kind,qty,expiry,strike,mark)=>({kind,qty,expiry,strike,mark,iv:'',entry:'',priceSource:'Synthetic sample midpoint'});const original=[r('put',-2,date(45),75,.80),r('call',-2,date(45),125,.90),r('put',-1,date(90),65,.60),r('call',-1,date(90),140,.50)];return{...data,symbol:'XYZ',spot:100,nlv:100000,evaluateSpot:100,original,proposed:JSON.parse(JSON.stringify(original))};}
 function allInputs(){const data={...state};for(const id of ids)data[id]=$(id).value;return data;}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(allInputs()));$('save-status').textContent='Saved on this browser · Export a JSON backup to move between devices.';}catch(e){$('save-status').textContent='Browser storage unavailable. Use Export inputs to keep a backup.';}}
 function dirty(){last=null;$('results').hidden=true;$('errors').textContent='';save();}
@@ -22,7 +22,7 @@ document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{const snapshot
 for(const id of ids)$(id).addEventListener('input',dirty);
 $('copy').onclick=()=>{state.proposed=JSON.parse(JSON.stringify(state.original));renderTables();dirty();};
 $('empty').onclick=()=>{if(confirm('Clear both position tables and reset account inputs?'))load(defaults());};
-$('demo').onclick=()=>{if(state.original.length&&!confirm('Replace current inputs with the illustrative SMH example? Export your inputs first to keep them.'))return;load(example());calculate();};
+$('demo').onclick=()=>{if(state.original.length&&!confirm('Replace current inputs with synthetic sample data? Export your inputs first to keep them.'))return;load(example());calculate();};
 $('today').onclick=()=>{$('evaluateOn').value=$('asOf').value;$('evaluateSpot').value=$('spot').value;dirty();calculate();};
 $('week').onclick=()=>{const d=Date.parse($('asOf').value+'T00:00:00Z');if(!Number.isFinite(d))return;$('evaluateOn').value=new Date(d+7*86400000).toISOString().slice(0,10);$('evaluateSpot').value=$('spot').value;dirty();calculate();};
 function download(name,content,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
@@ -51,7 +51,7 @@ function renderBenchmark(legs,cfg){
  const fmtMoney=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(v):'—';
  const gap=observed!=null&&Math.abs(observed)<100&&nearest!=null?nearest-observed:null;
  $('broker-comparison').innerHTML=[['Nearest signed PNR',observed==null?'Not supplied':pct(observed),nearest==null?'No crossing found':pct(nearest),gap==null?'—':sign(gap)+gap.toFixed(2)+' pp'],['Underlying margin requirement',fmtMoney(observedMargin),'Not modeled','—'],['Net short option extrinsic value',fmtMoney(observedExt),fmtMoney(ext),observedExt==null?'—':fmtMoney(ext-observedExt)]].map(row=>'<tr>'+row.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('');
- $('broker-note').textContent='Original positions at the snapshot date and price; no proposed cash or future IV shock. Broker inputs are references, never fitted targets. A whole-percent PNR does not establish the broker’s rounding rule. 101% readings are not treated as exact zero-equity thresholds. Margin uses separate broker price/IV stress arrays and house rules. EPR loss is not margin. ' +(cfg.symbol.toUpperCase()==='SMH'&&cfg.asOf==='2026-10-02'?'SMH example uses your earlier bid/ask midpoints with later screenshot spot $630.75 and NLV $501,978.34: this is a mixed-time comparison, not a synchronized broker replication.':'');
+ $('broker-note').textContent='Original positions at the snapshot date and price; no proposed cash or future IV shock. Broker inputs are references, never fitted targets. A whole-percent PNR does not establish the broker’s rounding rule. 101% readings are not treated as exact zero-equity thresholds. Margin uses separate broker price/IV stress arrays and house rules. EPR loss is not margin.';
 }
 $('calculate').onclick=calculate;$('leg-side').onchange=renderLegs;
 function legName(l){return (l.qty<0?'Short ':'Long ')+Math.abs(l.qty)+' '+(l.kind==='stock'?'shares':l.expiry+' $'+l.strike+' '+l.kind);}
